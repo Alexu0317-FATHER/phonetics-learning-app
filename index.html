@@ -138,16 +138,22 @@
                     cardClickCount[key] = 0;
                 });
                 
-                // 初始化ResponsiveVoice设置
-                if (typeof responsiveVoice !== 'undefined') {
-                    // 启用估算超时，确保回调正常触发
-                    responsiveVoice.enableEstimationTimeout = true;
-                    // 设置默认语音
-                    const defaultVoice = getBestEnglishVoice();
-                    if (defaultVoice) {
-                        responsiveVoice.setDefaultVoice(defaultVoice);
+                // 初始化ResponsiveVoice设置（延迟确保完全加载）
+                setTimeout(() => {
+                    if (typeof responsiveVoice !== 'undefined') {
+                        console.log('初始化ResponsiveVoice设置...');
+                        // 启用估算超时，确保回调正常触发
+                        responsiveVoice.enableEstimationTimeout = true;
+                        // 设置默认语音
+                        const defaultVoice = getBestEnglishVoice();
+                        if (defaultVoice) {
+                            console.log('设置默认语音为:', defaultVoice);
+                            responsiveVoice.setDefaultVoice(defaultVoice);
+                        } else {
+                            console.log('未找到合适的默认语音');
+                        }
                     }
-                }
+                }, 1000);
                 
                 // 创建所有卡片
                 createCards(vowels, 'vowels');
@@ -260,8 +266,11 @@
                     }
                     
                     function playWord() {
-                        const voiceName = getBestEnglishVoice();
-                        responsiveVoice.speak(currentWord, voiceName, {
+                        // 直接使用ResponsiveVoice内置语音名称，不依赖getVoices()
+                        const forcedVoice = 'UK English Female'; // ResponsiveVoice内置语音
+                        console.log('强制使用语音:', forcedVoice, '播放单词:', currentWord);
+                        
+                        responsiveVoice.speak(currentWord, forcedVoice, {
                             rate: 0.8,
                             volume: 1,
                             onstart: function() {
@@ -275,8 +284,15 @@
                             onerror: function(error) {
                                 console.error('播放错误:', error);
                                 isAudioPlaying = false;
-                                // 降级到浏览器TTS
-                                speak(currentWord);
+                                // 尝试另一个内置语音
+                                responsiveVoice.speak(currentWord, 'US English Female', {
+                                    rate: 0.8,
+                                    onend: function() { isAudioPlaying = false; },
+                                    onerror: function() { 
+                                        isAudioPlaying = false;
+                                        speak(currentWord); 
+                                    }
+                                });
                             }
                         });
                     }
