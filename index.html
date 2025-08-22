@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>国际音标学习卡片</title>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=yM4ApGw0"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -91,7 +92,20 @@
             <strong>总计44个音标</strong> = 12个单元音 + 8个双元音 + 24个辅音
         </div>
         
-        <div id="phonetic-cards"></div>
+        <div class="category">
+            <div class="category-title">单元音 (Monophthongs) - 12个</div>
+            <div class="phonetic-grid" id="vowels"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">双元音 (Diphthongs) - 8个</div>
+            <div class="phonetic-grid" id="diphthongs"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">辅音 (Consonants) - 24个</div>
+            <div class="phonetic-grid" id="consonants"></div>
+        </div>
 
         <div id="practice-area">
             <h2>练习区</h2>
@@ -103,97 +117,179 @@
     </div>
 
     <script>
+        // 词库和状态管理
         let wordsData = {};
         let cardClickCount = {};
+        let currentSymbol = null;
+
+        // 音标分类
+        const vowels = ['iː', 'ɪ', 'e', 'æ', 'ɑː', 'ɒ', 'ɔː', 'ʊ', 'uː', 'ʌ', 'ɜː', 'ə'];
+        const diphthongs = ['eɪ', 'aɪ', 'ɔɪ', 'aʊ', 'əʊ', 'ɪə', 'eə', 'ʊə'];
+        const consonants = ['p', 'b', 't', 'd', 'k', 'g', 'tʃ', 'dʒ', 'f', 'v', 'θ', 'ð', 's', 'z', 'ʃ', 'ʒ', 'h', 'm', 'n', 'ŋ', 'l', 'r', 'w', 'j'];
 
         // 异步加载词库
         fetch('words.json')
-          .then(response => response.json())
-          .then(data => {
-            wordsData = data;
-            // 初始化卡片点击计数
-            Object.keys(wordsData).forEach(key => {
-              cardClickCount[key] = 0;
+            .then(response => response.json())
+            .then(data => {
+                wordsData = data;
+                // 初始化点击计数
+                Object.keys(wordsData).forEach(key => {
+                    cardClickCount[key] = 0;
+                });
+                // 创建所有卡片
+                createCards(vowels, 'vowels');
+                createCards(diphthongs, 'diphthongs');
+                createCards(consonants, 'consonants');
+                console.log('词库加载成功，ResponsiveVoice状态:', typeof responsiveVoice);
+            })
+            .catch(error => {
+                console.error('加载词库失败:', error);
+                // 使用降级方案
+                initializeFallback();
             });
-            // 渲染卡片和练习区
-            renderPhoneticCards();
-            renderPracticeArea();
-          });
 
-        function speakPhoneme(phoneme) {
-          responsiveVoice.speak(phoneme, "UK English Female", {rate: 0.8});
-        }
-        function speakWord(word) {
-          responsiveVoice.speak(word, "UK English Female", {rate: 0.8});
-        }
-
-        function renderPhoneticCards() {
-          // 假设有 phonemesList
-          const phonemesList = Object.keys(wordsData);
-          const container = document.getElementById('phonetic-cards');
-          container.innerHTML = '';
-          phonemesList.forEach(phoneme => {
-            let wordIdx = cardClickCount[phoneme] % wordsData[phoneme].length;
-            let word = wordsData[phoneme][wordIdx];
-            const card = document.createElement('div');
-            card.className = 'phonetic-card';
-            card.innerHTML = `<div class="symbol">${phoneme}</div><div class="example">${word}</div>`;
-            card.onclick = () => {
-              speakPhoneme(phoneme);
-              setTimeout(() => speakWord(word), 800);
-              cardClickCount[phoneme]++;
-              // 每点3次切换单词
-              if (cardClickCount[phoneme] % 3 === 0) {
-                renderPhoneticCards();
-              }
-            };
-            container.appendChild(card);
-          });
+        // 创建卡片函数
+        function createCards(symbols, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            symbols.forEach(symbol => {
+                const card = document.createElement('div');
+                card.className = 'phonetic-card';
+                
+                // 获取当前显示的单词
+                const currentWord = getCurrentWord(symbol);
+                
+                card.innerHTML = `
+                    <div class="symbol">${symbol}</div>
+                    <div class="example">${currentWord}</div>
+                `;
+                
+                card.onclick = () => handleCardClick(symbol, symbols, containerId);
+                container.appendChild(card);
+            });
         }
 
-        function renderPracticeArea() {
-          const area = document.getElementById('practice-area');
-          area.innerHTML = '';
-          // 随机选一个音标和单词
-          const phonemesList = Object.keys(wordsData);
-          const phoneme = phonemesList[Math.floor(Math.random() * phonemesList.length)];
-          const word = wordsData[phoneme][0];
-          const questionDiv = document.createElement('div');
-          questionDiv.textContent = `${phoneme}`;
-          area.appendChild(questionDiv);
-          const showBtn = document.createElement('button');
-          showBtn.textContent = '显示答案';
-          showBtn.onclick = () => {
-            const answerDiv = document.createElement('div');
-            answerDiv.textContent = word;
-            area.appendChild(answerDiv);
-            speakPhoneme(phoneme);
-            setTimeout(() => speakWord(word), 800);
-          };
-          area.appendChild(showBtn);
+        // 获取当前显示的单词
+        function getCurrentWord(symbol) {
+            if (!wordsData[symbol] || wordsData[symbol].length === 0) return symbol;
+            const wordIndex = Math.floor(cardClickCount[symbol] / 3) % wordsData[symbol].length;
+            return wordsData[symbol][wordIndex];
+        }
+
+        // 处理卡片点击
+        function handleCardClick(symbol, symbols, containerId) {
+            console.log('点击音标:', symbol);
+            
+            // 增加点击计数
+            cardClickCount[symbol]++;
+            const currentWord = getCurrentWord(symbol);
+            
+            // 发音：先读音标，再读单词
+            if (typeof responsiveVoice !== 'undefined' && responsiveVoice.isPlaying) {
+                responsiveVoice.cancel(); // 停止当前播放
+            }
+            
+            if (typeof responsiveVoice !== 'undefined') {
+                console.log('播放音标:', symbol);
+                responsiveVoice.speak(symbol, "UK English Female", {
+                    rate: 0.8,
+                    onend: function() {
+                        console.log('播放单词:', currentWord);
+                        responsiveVoice.speak(currentWord, "UK English Female", {rate: 0.8});
+                    }
+                });
+            } else {
+                console.error('ResponsiveVoice未加载');
+                // 降级到浏览器TTS
+                speak(currentWord);
+            }
+            
+            // 每点击3次切换单词
+            if (cardClickCount[symbol] % 3 === 0) {
+                setTimeout(() => {
+                    createCards(symbols, containerId);
+                }, 100);
+            }
+        }
+
+        // 降级TTS函数
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+            speechSynthesis.speak(utterance);
         }
 
         // 练习功能
-        let currentSymbol = null;
         function startPractice() {
+            if (Object.keys(wordsData).length === 0) {
+                alert('词库还在加载中，请稍等...');
+                return;
+            }
+            
             const allSymbols = [...vowels, ...diphthongs, ...consonants];
             currentSymbol = allSymbols[Math.floor(Math.random() * allSymbols.length)];
-            document.getElementById('question').textContent = currentSymbol.symbol;
+            const currentWord = getCurrentWord(currentSymbol);
+            
+            // 显示单词的音标形式
+            document.getElementById('question').textContent = getWordPhonetics(currentWord);
             document.getElementById('answer').textContent = '';
         }
 
         function checkAnswer() {
-            if (currentSymbol) {
-                document.getElementById('answer').textContent = 
-                    `答案: ${currentSymbol.example}`;
-                speak(currentSymbol.example.split('/')[0].trim());
+            if (!currentSymbol) return;
+            
+            const currentWord = getCurrentWord(currentSymbol);
+            document.getElementById('answer').textContent = `答案: ${currentWord}`;
+            
+            // 发音
+            if (typeof responsiveVoice !== 'undefined') {
+                responsiveVoice.speak(currentSymbol, "UK English Female", {
+                    rate: 0.8,
+                    onend: function() {
+                        responsiveVoice.speak(currentWord, "UK English Female", {rate: 0.8});
+                    }
+                });
+            } else {
+                speak(currentWord);
             }
         }
 
-        // 初始化
-        createCards(vowels, 'vowels');
-        createCards(diphthongs, 'diphthongs');
-        createCards(consonants, 'consonants');
+        // 获取单词的音标形式（简化版）
+        function getWordPhonetics(word) {
+            const phoneticMap = {
+                'like': 'laɪk', 'life': 'laɪf', 'time': 'taɪm',
+                'day': 'deɪ', 'play': 'pleɪ', 'make': 'meɪk',
+                'see': 'siː', 'need': 'niːd', 'keep': 'kiːp',
+                'sit': 'sɪt', 'big': 'bɪɡ', 'fish': 'fɪʃ'
+            };
+            return phoneticMap[word] || word;
+        }
+
+        // 降级初始化
+        function initializeFallback() {
+            console.log('使用降级方案初始化');
+            wordsData = {
+                'aɪ': ['like', 'life', 'time'],
+                'eɪ': ['day', 'play', 'make'],
+                'iː': ['see', 'need', 'keep']
+                // 添加更多...
+            };
+            Object.keys(wordsData).forEach(key => {
+                cardClickCount[key] = 0;
+            });
+            createCards(['aɪ', 'eɪ', 'iː'], 'vowels');
+        }
+
+        // 等待ResponsiveVoice加载
+        function waitForResponsiveVoice() {
+            if (typeof responsiveVoice !== 'undefined') {
+                console.log('ResponsiveVoice已加载');
+            } else {
+                setTimeout(waitForResponsiveVoice, 100);
+            }
+        }
+        waitForResponsiveVoice();
     </script>
 </body>
 </html>
