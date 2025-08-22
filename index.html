@@ -109,6 +109,10 @@
 
         <div id="practice-area">
             <h2>练习区</h2>
+            <div style="margin-bottom: 15px;">
+                <button onclick="testResponsiveVoice()" style="background: #e53e3e;">测试语音</button>
+                <button onclick="testBrowserTTS()" style="background: #3182ce;">测试浏览器TTS</button>
+            </div>
             <div id="question" style="font-size: 48px; margin: 20px;">?</div>
             <button onclick="startPractice()">开始练习</button>
             <button onclick="checkAnswer()">显示答案</button>
@@ -178,11 +182,16 @@
 
         // 处理卡片点击
         function handleCardClick(symbol, symbols, containerId) {
-            console.log('点击音标:', symbol);
+            console.log('=== 点击音标 ===', symbol);
             
             // 增加点击计数
             cardClickCount[symbol]++;
             const currentWord = getCurrentWord(symbol);
+            console.log('当前单词:', currentWord);
+            console.log('ResponsiveVoice可用:', typeof responsiveVoice !== 'undefined');
+            
+            // 显示点击反馈
+            alert(`点击了音标: ${symbol}\n当前单词: ${currentWord}\nResponsiveVoice状态: ${typeof responsiveVoice !== 'undefined' ? '可用' : '不可用'}`);
             
             // 发音：先读音标，再读单词
             if (typeof responsiveVoice !== 'undefined' && responsiveVoice.isPlaying) {
@@ -190,16 +199,39 @@
             }
             
             if (typeof responsiveVoice !== 'undefined') {
-                console.log('播放音标:', symbol);
-                responsiveVoice.speak(symbol, "UK English Female", {
-                    rate: 0.8,
-                    onend: function() {
-                        console.log('播放单词:', currentWord);
-                        responsiveVoice.speak(currentWord, "UK English Female", {rate: 0.8});
-                    }
-                });
+                console.log('尝试播放音标:', symbol);
+                try {
+                    responsiveVoice.speak(symbol, "UK English Female", {
+                        rate: 0.8,
+                        onstart: function() {
+                            console.log('开始播放音标:', symbol);
+                        },
+                        onend: function() {
+                            console.log('音标播放完成，开始播放单词:', currentWord);
+                            responsiveVoice.speak(currentWord, "UK English Female", {
+                                rate: 0.8,
+                                onstart: function() {
+                                    console.log('开始播放单词:', currentWord);
+                                },
+                                onend: function() {
+                                    console.log('单词播放完成');
+                                }
+                            });
+                        },
+                        onerror: function(error) {
+                            console.error('播放音标出错:', error);
+                            alert('播放音标出错: ' + error);
+                        }
+                    });
+                } catch(error) {
+                    console.error('ResponsiveVoice调用出错:', error);
+                    alert('ResponsiveVoice调用出错: ' + error);
+                    // 降级到浏览器TTS
+                    speak(currentWord);
+                }
             } else {
-                console.error('ResponsiveVoice未加载');
+                console.error('ResponsiveVoice未加载，使用降级方案');
+                alert('ResponsiveVoice未加载，使用浏览器TTS');
                 // 降级到浏览器TTS
                 speak(currentWord);
             }
@@ -279,6 +311,65 @@
                 cardClickCount[key] = 0;
             });
             createCards(['aɪ', 'eɪ', 'iː'], 'vowels');
+        }
+
+        // 测试函数
+        function testResponsiveVoice() {
+            console.log('=== 测试 ResponsiveVoice ===');
+            console.log('ResponsiveVoice可用:', typeof responsiveVoice !== 'undefined');
+            
+            if (typeof responsiveVoice !== 'undefined') {
+                console.log('ResponsiveVoice版本:', responsiveVoice.version || '未知');
+                console.log('可用语音:', responsiveVoice.getVoices ? responsiveVoice.getVoices().length : '未知');
+                
+                try {
+                    responsiveVoice.speak("Hello, this is a test", "UK English Female", {
+                        rate: 0.8,
+                        onstart: function() {
+                            console.log('ResponsiveVoice 开始播放');
+                            alert('ResponsiveVoice 开始播放');
+                        },
+                        onend: function() {
+                            console.log('ResponsiveVoice 播放完成');
+                            alert('ResponsiveVoice 播放完成');
+                        },
+                        onerror: function(error) {
+                            console.error('ResponsiveVoice 播放错误:', error);
+                            alert('ResponsiveVoice 播放错误: ' + error);
+                        }
+                    });
+                } catch(error) {
+                    console.error('ResponsiveVoice 调用异常:', error);
+                    alert('ResponsiveVoice 调用异常: ' + error);
+                }
+            } else {
+                alert('ResponsiveVoice 未加载！');
+            }
+        }
+
+        function testBrowserTTS() {
+            console.log('=== 测试浏览器 TTS ===');
+            try {
+                const utterance = new SpeechSynthesisUtterance("Hello, this is browser TTS test");
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                utterance.onstart = function() {
+                    console.log('浏览器TTS 开始播放');
+                    alert('浏览器TTS 开始播放');
+                };
+                utterance.onend = function() {
+                    console.log('浏览器TTS 播放完成');
+                    alert('浏览器TTS 播放完成');
+                };
+                utterance.onerror = function(error) {
+                    console.error('浏览器TTS 播放错误:', error);
+                    alert('浏览器TTS 播放错误: ' + error);
+                };
+                speechSynthesis.speak(utterance);
+            } catch(error) {
+                console.error('浏览器TTS 调用异常:', error);
+                alert('浏览器TTS 调用异常: ' + error);
+            }
         }
 
         // 等待ResponsiveVoice加载
