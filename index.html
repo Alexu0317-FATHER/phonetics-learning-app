@@ -195,30 +195,40 @@
             }
             
             const voices = responsiveVoice.getVoices();
+            console.log('所有可用语音:', voices.map(v => v.name));
             
-            // 优先级列表
-            const priorities = [
+            // ResponsiveVoice专有语音优先级列表（这些通常更稳定）
+            const rvPriorities = [
                 'UK English Female',
-                'British English Female', 
-                'UK English Male',
-                'British English Male',
+                'UK English Male', 
                 'US English Female',
-                'English Female'
+                'US English Male',
+                'Australian English Female',
+                'Australian English Male'
             ];
             
-            for (let priority of priorities) {
+            // 首先尝试ResponsiveVoice专有语音
+            for (let priority of rvPriorities) {
                 const found = voices.find(voice => voice.name === priority);
                 if (found) {
+                    console.log('选择的语音:', found.name);
                     return found.name;
                 }
             }
             
-            // 降级：找任何包含English的语音
+            // 如果没有找到专有语音，找任何英语语音，但排除Google语音（容易中断）
             const englishVoice = voices.find(voice => 
-                voice.name.toLowerCase().includes('english')
+                voice.name.toLowerCase().includes('english') && 
+                !voice.name.toLowerCase().includes('google')
             );
             
-            return englishVoice ? englishVoice.name : null;
+            if (englishVoice) {
+                console.log('选择的备用语音:', englishVoice.name);
+                return englishVoice.name;
+            }
+            
+            console.log('使用默认语音');
+            return null;
         }
 
         // 处理卡片点击
@@ -232,7 +242,7 @@
             cardClickCount[symbol]++;
             const currentWord = getCurrentWord(symbol);
             
-            // 发音：先读音标示例，再读单词
+            // 简化音频播放：只播放单词，避免复杂的队列问题
             if (typeof responsiveVoice !== 'undefined') {
                 try {
                     // 标记音频开始播放
@@ -241,73 +251,45 @@
                     // 如果正在播放，先停止
                     if (responsiveVoice.isPlaying()) {
                         responsiveVoice.cancel();
+                        // 等待取消完成
+                        setTimeout(() => {
+                            playWord();
+                        }, 100);
+                    } else {
+                        playWord();
                     }
                     
-                    const phonemeExample = getPhonemeExample(symbol);
-                    const voiceName = getBestEnglishVoice();
+                    function playWord() {
+                        const voiceName = getBestEnglishVoice();
+                        responsiveVoice.speak(currentWord, voiceName, {
+                            rate: 0.8,
+                            volume: 1,
+                            onstart: function() {
+                                console.log('开始播放:', currentWord);
+                                isAudioPlaying = true;
+                            },
+                            onend: function() {
+                                console.log('播放完成:', currentWord);
+                                isAudioPlaying = false;
+                            },
+                            onerror: function(error) {
+                                console.error('播放错误:', error);
+                                isAudioPlaying = false;
+                                // 降级到浏览器TTS
+                                speak(currentWord);
+                            }
+                        });
+                    }
                     
-                    // 播放音标示例
-                    responsiveVoice.speak(phonemeExample, voiceName, {
-                        rate: 0.6,
-                        onstart: function() {
-                            isAudioPlaying = true;
-                        },
-                        onend: function() {
-                            // 添加小延迟，确保第一个语音完全结束
-                            setTimeout(() => {
-                                responsiveVoice.speak(currentWord, voiceName, {
-                                    rate: 0.8,
-                                    onstart: function() {
-                                        isAudioPlaying = true;
-                                    },
-                                    onend: function() {
-                                        isAudioPlaying = false;
-                                    },
-                                    onerror: function(error) {
-                                        console.error('单词发音错误:', error);
-                                        isAudioPlaying = false;
-                                    }
-                                });
-                            }, 200);
-                        },
-                        onerror: function(error) {
-                            console.error('音标发音错误:', error);
-                            // 如果音标发音失败，直接播放单词
-                            setTimeout(() => {
-                                responsiveVoice.speak(currentWord, voiceName, {
-                                    rate: 0.8,
-                                    onend: function() {
-                                        isAudioPlaying = false;
-                                    },
-                                    onerror: function(error) {
-                                        console.error('单词发音错误:', error);
-                                        isAudioPlaying = false;
-                                    }
-                                });
-                            }, 200);
-                        }
-                    });
                 } catch(error) {
                     console.error('语音播放错误:', error);
                     isAudioPlaying = false;
-                    // 降级到只播放单词
-                    const voiceName = getBestEnglishVoice();
-                    if (voiceName) {
-                        responsiveVoice.speak(currentWord, voiceName, {
-                            rate: 0.8,
-                            onend: function() {
-                                isAudioPlaying = false;
-                            }
-                        });
-                    } else {
-                        speak(currentWord);
-                        setTimeout(() => { isAudioPlaying = false; }, 2000);
-                    }
+                    // 降级到浏览器TTS
+                    speak(currentWord);
                 }
             } else {
                 // 使用浏览器TTS降级
                 speak(currentWord);
-                setTimeout(() => { isAudioPlaying = false; }, 2000);
             }
             
             // 每点击3次切换单词
