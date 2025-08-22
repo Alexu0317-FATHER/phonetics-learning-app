@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国际音标学习卡片</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #5a67d8;
+            text-align: center;
+        }
+        .phonetic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .phonetic-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .phonetic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: #edf2f7;
+        }
+        .symbol {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .example {
+            font-size: 14px;
+            color: #718096;
+        }
+        .category {
+            margin-top: 30px;
+        }
+        .category-title {
+            color: #4a5568;
+            font-size: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        #practice-area {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0fff4;
+            border-radius: 10px;
+            text-align: center;
+        }
+        button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #38a169;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 国际音标学习卡片 🎵</h1>
+        
+        <div class="category">
+            <div class="category-title">元音 (Vowels)</div>
+            <div class="phonetic-grid" id="vowels"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">辅音 (Consonants)</div>
+            <div class="phonetic-grid" id="consonants"></div>
+        </div>
+
+        <div id="practice-area">
+            <h2>练习区</h2>
+            <div id="question" style="font-size: 48px; margin: 20px;">?</div>
+            <button onclick="startPractice()">开始练习</button>
+            <button onclick="checkAnswer()">显示答案</button>
+            <div id="answer" style="margin-top: 20px; font-size: 18px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 音标数据
+        const vowels = [
+            {symbol: 'iː', example: 'see /siː/'},
+            {symbol: 'ɪ', example: 'sit /sɪt/'},
+            {symbol: 'e', example: 'bed /bed/'},
+            {symbol: 'æ', example: 'cat /kæt/'},
+            {symbol: 'ɑː', example: 'car /kɑː/'},
+            {symbol: 'ɒ', example: 'hot /hɒt/'},
+            {symbol: 'ɔː', example: 'saw /sɔː/'},
+            {symbol: 'ʊ', example: 'put /pʊt/'},
+            {symbol: 'uː', example: 'too /tuː/'},
+            {symbol: 'ʌ', example: 'cup /kʌp/'},
+            {symbol: 'ɜː', example: 'bird /bɜːd/'},
+            {symbol: 'ə', example: 'about /əˈbaʊt/'}
+        ];
+
+        const consonants = [
+            {symbol: 'p', example: 'pen /pen/'},
+            {symbol: 'b', example: 'big /bɪg/'},
+            {symbol: 't', example: 'tea /tiː/'},
+            {symbol: 'd', example: 'dog /dɒg/'},
+            {symbol: 'k', example: 'cat /kæt/'},
+            {symbol: 'g', example: 'go /gəʊ/'},
+            {symbol: 'f', example: 'fish /fɪʃ/'},
+            {symbol: 'v', example: 'very /ˈveri/'},
+            {symbol: 'θ', example: 'think /θɪŋk/'},
+            {symbol: 'ð', example: 'this /ðɪs/'},
+            {symbol: 's', example: 'see /siː/'},
+            {symbol: 'z', example: 'zoo /zuː/'},
+            {symbol: 'ʃ', example: 'she /ʃiː/'},
+            {symbol: 'ʒ', example: 'vision /ˈvɪʒən/'},
+            {symbol: 'h', example: 'hat /hæt/'},
+            {symbol: 'm', example: 'man /mæn/'},
+            {symbol: 'n', example: 'no /nəʊ/'},
+            {symbol: 'ŋ', example: 'sing /sɪŋ/'},
+            {symbol: 'l', example: 'leg /leg/'},
+            {symbol: 'r', example: 'red /red/'},
+            {symbol: 'w', example: 'we /wiː/'},
+            {symbol: 'j', example: 'yes /jes/'}
+        ];
+
+        // 创建卡片
+        function createCards(symbols, containerId) {
+            const container = document.getElementById(containerId);
+            symbols.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'phonetic-card';
+                card.innerHTML = `
+                    <div class="symbol">${item.symbol}</div>
+                    <div class="example">${item.example}</div>
+                `;
+                card.onclick = () => speak(item.example.split('/')[0].trim());
+                container.appendChild(card);
+            });
+        }
+
+        // 文字转语音
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8; // 放慢语速
+            speechSynthesis.speak(utterance);
+        }
+
+        // 练习功能
+        let currentSymbol = null;
+        function startPractice() {
+            const allSymbols = [...vowels, ...consonants];
+            currentSymbol = allSymbols[Math.floor(Math.random() * allSymbols.length)];
+            document.getElementById('question').textContent = currentSymbol.symbol;
+            document.getElementById('answer').textContent = '';
+        }
+
+        function checkAnswer() {
+            if (currentSymbol) {
+                document.getElementById('answer').textContent = 
+                    `答案: ${currentSymbol.example}`;
+                speak(currentSymbol.example.split('/')[0].trim());
+            }
+        }
+
+        // 初始化
+        createCards(vowels, 'vowels');
+        createCards(consonants, 'consonants');
+    </script>
+</body>
+</html>
