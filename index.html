@@ -140,17 +140,6 @@
                 createCards(vowels, 'vowels');
                 createCards(diphthongs, 'diphthongs');
                 createCards(consonants, 'consonants');
-                console.log('词库加载成功，ResponsiveVoice状态:', typeof responsiveVoice);
-                
-                // 检查可用语音
-                setTimeout(() => {
-                    if (typeof responsiveVoice !== 'undefined' && responsiveVoice.getVoices) {
-                        const voices = responsiveVoice.getVoices();
-                        console.log('可用语音列表:', voices);
-                        const ukVoices = voices.filter(voice => voice.name.toLowerCase().includes('uk') || voice.name.toLowerCase().includes('british'));
-                        console.log('英国语音:', ukVoices);
-                    }
-                }, 2000);
             })
             .catch(error => {
                 console.error('加载词库失败:', error);
@@ -189,80 +178,68 @@
         // 获取最佳英语语音
         function getBestEnglishVoice() {
             if (typeof responsiveVoice === 'undefined' || !responsiveVoice.getVoices) {
-                return "UK English Female"; // 默认值
+                return null; // 使用默认语音
             }
             
             const voices = responsiveVoice.getVoices();
-            console.log('所有可用语音:', voices.map(v => v.name));
             
-            // 优先级：UK/British > US > 其他英语
+            // 优先级列表
             const priorities = [
                 'UK English Female',
                 'British English Female', 
                 'UK English Male',
                 'British English Male',
                 'US English Female',
-                'English Female',
-                'Female'
+                'English Female'
             ];
             
             for (let priority of priorities) {
                 const found = voices.find(voice => voice.name === priority);
                 if (found) {
-                    console.log('选择语音:', found.name);
                     return found.name;
                 }
             }
             
-            // 如果都没找到，使用第一个包含English的语音
+            // 降级：找任何包含English的语音
             const englishVoice = voices.find(voice => 
-                voice.name.toLowerCase().includes('english') || 
-                voice.name.toLowerCase().includes('female')
+                voice.name.toLowerCase().includes('english')
             );
             
-            if (englishVoice) {
-                console.log('降级使用语音:', englishVoice.name);
-                return englishVoice.name;
-            }
-            
-            console.log('使用默认语音');
-            return null; // 使用默认语音
+            return englishVoice ? englishVoice.name : null;
         }
 
         // 处理卡片点击
         function handleCardClick(symbol, symbols, containerId) {
-            console.log('=== 点击音标 ===', symbol);
-            
             // 增加点击计数
             cardClickCount[symbol]++;
             const currentWord = getCurrentWord(symbol);
-            console.log('当前单词:', currentWord);
             
-            // 发音：先读单词示例，再读单词
+            // 发音：先读音标示例，再读单词
             if (typeof responsiveVoice !== 'undefined') {
                 try {
-                    // 不直接读音标，而是读音标的发音示例
                     const phonemeExample = getPhonemeExample(symbol);
                     const voiceName = getBestEnglishVoice();
-                    console.log('播放音标示例:', phonemeExample, '使用语音:', voiceName);
                     
                     responsiveVoice.speak(phonemeExample, voiceName, {
                         rate: 0.6,
                         onend: function() {
-                            console.log('播放单词:', currentWord);
                             responsiveVoice.speak(currentWord, voiceName, {
                                 rate: 0.8
                             });
                         }
                     });
                 } catch(error) {
-                    console.error('ResponsiveVoice调用出错:', error);
+                    console.error('语音播放错误:', error);
                     // 降级到只播放单词
                     const voiceName = getBestEnglishVoice();
-                    responsiveVoice.speak(currentWord, voiceName, {rate: 0.8});
+                    if (voiceName) {
+                        responsiveVoice.speak(currentWord, voiceName, {rate: 0.8});
+                    } else {
+                        speak(currentWord);
+                    }
                 }
             } else {
-                console.error('ResponsiveVoice未加载，使用降级方案');
+                // 使用浏览器TTS降级
                 speak(currentWord);
             }
             
