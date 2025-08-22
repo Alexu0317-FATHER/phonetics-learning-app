@@ -82,6 +82,7 @@
             background: #38a169;
         }
     </style>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=yM4ApGw0"></script>
 </head>
 <body>
     <div class="container">
@@ -90,20 +91,7 @@
             <strong>总计44个音标</strong> = 12个单元音 + 8个双元音 + 24个辅音
         </div>
         
-        <div class="category">
-            <div class="category-title">单元音 (Monophthongs) - 12个</div>
-            <div class="phonetic-grid" id="vowels"></div>
-        </div>
-
-        <div class="category">
-            <div class="category-title">双元音 (Diphthongs) - 8个</div>
-            <div class="phonetic-grid" id="diphthongs"></div>
-        </div>
-
-        <div class="category">
-            <div class="category-title">辅音 (Consonants) - 24个</div>
-            <div class="phonetic-grid" id="consonants"></div>
-        </div>
+        <div id="phonetic-cards"></div>
 
         <div id="practice-area">
             <h2>练习区</h2>
@@ -115,81 +103,74 @@
     </div>
 
     <script>
-        // 音标数据
-        const vowels = [
-            {symbol: 'iː', example: 'see /siː/'},
-            {symbol: 'ɪ', example: 'sit /sɪt/'},
-            {symbol: 'e', example: 'bed /bed/'},
-            {symbol: 'æ', example: 'cat /kæt/'},
-            {symbol: 'ɑː', example: 'car /kɑː/'},
-            {symbol: 'ɒ', example: 'hot /hɒt/'},
-            {symbol: 'ɔː', example: 'saw /sɔː/'},
-            {symbol: 'ʊ', example: 'put /pʊt/'},
-            {symbol: 'uː', example: 'too /tuː/'},
-            {symbol: 'ʌ', example: 'cup /kʌp/'},
-            {symbol: 'ɜː', example: 'bird /bɜːd/'},
-            {symbol: 'ə', example: 'about /əˈbaʊt/'}
-        ];
+        let wordsData = {};
+        let cardClickCount = {};
 
-        const diphthongs = [
-            {symbol: 'eɪ', example: 'day /deɪ/'},
-            {symbol: 'aɪ', example: 'my /maɪ/'},
-            {symbol: 'ɔɪ', example: 'boy /bɔɪ/'},
-            {symbol: 'aʊ', example: 'now /naʊ/'},
-            {symbol: 'əʊ', example: 'go /gəʊ/'},
-            {symbol: 'ɪə', example: 'here /hɪə/'},
-            {symbol: 'eə', example: 'where /weə/'},
-            {symbol: 'ʊə', example: 'tour /tʊə/'}
-        ];
-
-        const consonants = [
-            {symbol: 'p', example: 'pen /pen/'},
-            {symbol: 'b', example: 'big /bɪg/'},
-            {symbol: 't', example: 'tea /tiː/'},
-            {symbol: 'd', example: 'dog /dɒg/'},
-            {symbol: 'k', example: 'cat /kæt/'},
-            {symbol: 'g', example: 'go /gəʊ/'},
-            {symbol: 'tʃ', example: 'chair /tʃeə/'},
-            {symbol: 'dʒ', example: 'judge /dʒʌdʒ/'},
-            {symbol: 'f', example: 'fish /fɪʃ/'},
-            {symbol: 'v', example: 'very /ˈveri/'},
-            {symbol: 'θ', example: 'think /θɪŋk/'},
-            {symbol: 'ð', example: 'this /ðɪs/'},
-            {symbol: 's', example: 'see /siː/'},
-            {symbol: 'z', example: 'zoo /zuː/'},
-            {symbol: 'ʃ', example: 'she /ʃiː/'},
-            {symbol: 'ʒ', example: 'vision /ˈvɪʒən/'},
-            {symbol: 'h', example: 'hat /hæt/'},
-            {symbol: 'm', example: 'man /mæn/'},
-            {symbol: 'n', example: 'no /nəʊ/'},
-            {symbol: 'ŋ', example: 'sing /sɪŋ/'},
-            {symbol: 'l', example: 'leg /leg/'},
-            {symbol: 'r', example: 'red /red/'},
-            {symbol: 'w', example: 'we /wiː/'},
-            {symbol: 'j', example: 'yes /jes/'}
-        ];
-
-        // 创建卡片
-        function createCards(symbols, containerId) {
-            const container = document.getElementById(containerId);
-            symbols.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'phonetic-card';
-                card.innerHTML = `
-                    <div class="symbol">${item.symbol}</div>
-                    <div class="example">${item.example}</div>
-                `;
-                card.onclick = () => speak(item.example.split('/')[0].trim());
-                container.appendChild(card);
+        // 异步加载词库
+        fetch('words.json')
+          .then(response => response.json())
+          .then(data => {
+            wordsData = data;
+            // 初始化卡片点击计数
+            Object.keys(wordsData).forEach(key => {
+              cardClickCount[key] = 0;
             });
+            // 渲染卡片和练习区
+            renderPhoneticCards();
+            renderPracticeArea();
+          });
+
+        function speakPhoneme(phoneme) {
+          responsiveVoice.speak(phoneme, "UK English Female", {rate: 0.8});
+        }
+        function speakWord(word) {
+          responsiveVoice.speak(word, "UK English Female", {rate: 0.8});
         }
 
-        // 文字转语音
-        function speak(text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.8; // 放慢语速
-            speechSynthesis.speak(utterance);
+        function renderPhoneticCards() {
+          // 假设有 phonemesList
+          const phonemesList = Object.keys(wordsData);
+          const container = document.getElementById('phonetic-cards');
+          container.innerHTML = '';
+          phonemesList.forEach(phoneme => {
+            let wordIdx = cardClickCount[phoneme] % wordsData[phoneme].length;
+            let word = wordsData[phoneme][wordIdx];
+            const card = document.createElement('div');
+            card.className = 'phonetic-card';
+            card.innerHTML = `<div class="symbol">${phoneme}</div><div class="example">${word}</div>`;
+            card.onclick = () => {
+              speakPhoneme(phoneme);
+              setTimeout(() => speakWord(word), 800);
+              cardClickCount[phoneme]++;
+              // 每点3次切换单词
+              if (cardClickCount[phoneme] % 3 === 0) {
+                renderPhoneticCards();
+              }
+            };
+            container.appendChild(card);
+          });
+        }
+
+        function renderPracticeArea() {
+          const area = document.getElementById('practice-area');
+          area.innerHTML = '';
+          // 随机选一个音标和单词
+          const phonemesList = Object.keys(wordsData);
+          const phoneme = phonemesList[Math.floor(Math.random() * phonemesList.length)];
+          const word = wordsData[phoneme][0];
+          const questionDiv = document.createElement('div');
+          questionDiv.textContent = `${phoneme}`;
+          area.appendChild(questionDiv);
+          const showBtn = document.createElement('button');
+          showBtn.textContent = '显示答案';
+          showBtn.onclick = () => {
+            const answerDiv = document.createElement('div');
+            answerDiv.textContent = word;
+            area.appendChild(answerDiv);
+            speakPhoneme(phoneme);
+            setTimeout(() => speakWord(word), 800);
+          };
+          area.appendChild(showBtn);
         }
 
         // 练习功能
