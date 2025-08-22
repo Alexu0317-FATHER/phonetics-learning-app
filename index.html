@@ -86,14 +86,22 @@
 <body>
     <div class="container">
         <h1>🎵 国际音标学习卡片 🎵</h1>
+        <div style="text-align: center; margin-bottom: 20px; color: #718096;">
+            <strong>总计44个音标</strong> = 12个单元音 + 8个双元音 + 24个辅音
+        </div>
         
         <div class="category">
-            <div class="category-title">元音 (Vowels)</div>
+            <div class="category-title">单元音 (Monophthongs) - 12个</div>
             <div class="phonetic-grid" id="vowels"></div>
         </div>
 
         <div class="category">
-            <div class="category-title">辅音 (Consonants)</div>
+            <div class="category-title">双元音 (Diphthongs) - 8个</div>
+            <div class="phonetic-grid" id="diphthongs"></div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">辅音 (Consonants) - 24个</div>
             <div class="phonetic-grid" id="consonants"></div>
         </div>
 
@@ -123,6 +131,17 @@
             {symbol: 'ə', example: 'about /əˈbaʊt/'}
         ];
 
+        const diphthongs = [
+            {symbol: 'eɪ', example: 'day /deɪ/'},
+            {symbol: 'aɪ', example: 'my /maɪ/'},
+            {symbol: 'ɔɪ', example: 'boy /bɔɪ/'},
+            {symbol: 'aʊ', example: 'now /naʊ/'},
+            {symbol: 'əʊ', example: 'go /gəʊ/'},
+            {symbol: 'ɪə', example: 'here /hɪə/'},
+            {symbol: 'eə', example: 'where /weə/'},
+            {symbol: 'ʊə', example: 'tour /tʊə/'}
+        ];
+
         const consonants = [
             {symbol: 'p', example: 'pen /pen/'},
             {symbol: 'b', example: 'big /bɪg/'},
@@ -130,6 +149,8 @@
             {symbol: 'd', example: 'dog /dɒg/'},
             {symbol: 'k', example: 'cat /kæt/'},
             {symbol: 'g', example: 'go /gəʊ/'},
+            {symbol: 'tʃ', example: 'chair /tʃeə/'},
+            {symbol: 'dʒ', example: 'judge /dʒʌdʒ/'},
             {symbol: 'f', example: 'fish /fɪʃ/'},
             {symbol: 'v', example: 'very /ˈveri/'},
             {symbol: 'θ', example: 'think /θɪŋk/'},
@@ -174,7 +195,7 @@
         // 练习功能
         let currentSymbol = null;
         function startPractice() {
-            const allSymbols = [...vowels, ...consonants];
+            const allSymbols = [...vowels, ...diphthongs, ...consonants];
             currentSymbol = allSymbols[Math.floor(Math.random() * allSymbols.length)];
             document.getElementById('question').textContent = currentSymbol.symbol;
             document.getElementById('answer').textContent = '';
@@ -190,6 +211,7 @@
 
         // 初始化
         createCards(vowels, 'vowels');
+        createCards(diphthongs, 'diphthongs');
         createCards(consonants, 'consonants');
     </script>
 </body>
